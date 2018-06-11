@@ -1,0 +1,127 @@
+<framework>
+    <execution>
+        <mainThread />
+    </execution>
+    <modulesToEnable>
+        <if set="cali">
+            <module>camera_calibration</module>
+        </if>
+        <if set="homo">
+            <module>homography_estimator</module>
+            <!--module LogLevl="error">image_converter</module-->
+        </if>
+    </modulesToEnable>
+
+    <service>
+        <name>warp_service</name>
+        <config src="camera/cali_bmw.lconf" />
+    </service>
+    <module>
+        <name>camera_calibration</name>
+        <config>
+            <!--<model>fisheye</model>-->
+            <min_detections>2</min_detections>
+
+            <pattern>chessboard</pattern>
+            <points_per_row>9</points_per_row><!--13 -->
+            <points_per_col>6</points_per_col><!--13 -->
+
+            <!-- Asymmetric circle pattern
+            <pattern>circles_asymmetric</pattern>
+            <points_per_row>4</points_per_row>
+            <points_per_col>11</points_per_col>
+            -->
+
+            <!-- model options -->
+            <fix_principal_point><!--true-->false</fix_principal_point>
+            <fix_aspect_ratio>false</fix_aspect_ratio>
+            <zero_tangent_dist>false</zero_tangent_dist>
+            <rational_model>true</rational_model>
+
+            <scale_factor>0.5</scale_factor>
+
+            <!--<length>1</length>-->
+            <!--<delay>500</delay>--><!-- 500msec delay between captures -->
+            <wait>0</wait> <!-- after each frame for X ms (0 = infinity) -->
+        </config>
+    </module>
+    <module>
+        <name>homography_estimator</name>
+        <channelMapping from="IMAGE" to="IMAGE"/><!--_UNDISTORTED-->
+        <config>
+            <pattern>circles_asymmetric</pattern>
+            <points_per_row>4</points_per_row>
+            <points_per_col>15</points_per_col>
+
+            <estimatePoints_points_click>false</estimatePoints_points_click>
+            <outline_scale_factor>50</outline_scale_factor><!-- crashees if the number is bigger!-->
+            <!--outline_points_x>680,60,285,460</outline_points_x>
+            <outline_points_y>250,250,60,68</outline_points_y-->
+            <estimatePoints_points_x>926,338,544,742</estimatePoints_points_x>
+            <estimatePoints_points_y>587,576,357,351</estimatePoints_points_y>
+
+            <blob_filter_by_inertia>false</blob_filter_by_inertia>
+            <blob_filter_by_circularity>false</blob_filter_by_circularity>
+            <blob_filter_by_convexity>false</blob_filter_by_convexity>
+            <blob_min_area>200</blob_min_area>
+            <blob_max_area>1000000</blob_max_area>
+
+            <!-- Note: homography pattern print V1.0 has incorrect axis! -->
+            <pattern_offset_x>0.453</pattern_offset_x>
+            <pattern_offset_y>-0.269</pattern_offset_y>
+
+            <pattern_length>0.08</pattern_length><!-- circle center distance in mm TODO in mm und warum 0.08?-->
+            <wait>10</wait> <!-- after each frame for X ms (0 = infinity) -->
+        </config>
+    </module>
+    <module>
+        <name>image_converter</name>
+        <channelMapping from="INPUT_IMAGE" to="IMAGE"/>
+        <channelMapping from="OUTPUT_IMAGE" to="IMAGE_UNDISTORTED"/>
+        <config>
+            <filter>undistort</filter>
+        </config>
+    </module>
+    <if set="files">
+        <modulesToEnable>
+            <module>image_loader</module>
+        </modulesToEnable>
+        <module>
+            <name>image_loader</name>
+            <config>
+                <format>pgm</format>
+                <filePattern>%04i.pgm</filePattern>
+                <minCounter>0</minCounter>
+                <maxCounter>-1</maxCounter>
+                <loadSingleFile>false</loadSingleFile>
+                <singleFile>/tmp/test.pgm</singleFile>
+            </config>
+        </module>
+    </if>
+    <if notSet="files">
+        <modulesToEnable>
+            <module logLevel="ERROR">ximea_importer</module>
+            <!--module logLevel="ERROR">ueye_importer</module-->
+            <if set="image_logger">
+                <module logLevel="ERROR">image_logger</module>
+            </if>
+        </modulesToEnable>
+        <module>
+            <name>image_logger</name>
+        </module>
+        <module>
+            <name>ueye_importer</name>
+            <channelMapping from="CAMERA_IMAGE" to="IMAGE" />
+            <config src="camera/ueye_small.lconf" />
+            <config>
+                <initTimeout>2000</initTimeout>
+            </config>
+        </module>
+        <module>
+            <name>ximea_importer</name>
+            <config>
+                <exposure>3000</exposure>
+            </config>
+        </module>
+    </if>
+</framework>
